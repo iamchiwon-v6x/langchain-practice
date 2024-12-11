@@ -1,4 +1,5 @@
 import {
+  Annotation,
   END,
   MemorySaver,
   MessagesAnnotation,
@@ -6,40 +7,81 @@ import {
   StateGraph,
 } from "@langchain/langgraph";
 import { ChatOpenAI } from "@langchain/openai";
-import { genUUID } from "./utils";
-
-const config = { configurable: { thread_id: genUUID() } };
+import { genUUID, last } from "./utils";
+import {
+  AIMessage,
+  HumanMessage,
+  SystemMessage,
+  trimMessages,
+} from "@langchain/core/messages";
+import {
+  ChatPromptTemplate,
+  MessagesPlaceholder,
+} from "@langchain/core/prompts";
 
 const llm = new ChatOpenAI({
   model: "gpt-4o-mini",
   temperature: 0,
 });
 
-const callModel = async (state: typeof MessagesAnnotation.State) => {
-  const response = await llm.invoke(state.messages);
-  return { messages: response };
+const trimmer = trimMessages({
+  maxTokens: 10,
+  strategy: "last",
+  tokenCounter: (msgs) => msgs.length,
+  includeSystem: true,
+  allowPartial: false,
+  startOn: "human",
+});
+
+const prompt2 = ChatPromptTemplate.fromMessages([
+  [
+    "system",
+    "You are a helpful assistant. Answer all questions to the best of your ability in {language}.",
+  ],
+  new MessagesPlaceholder("messages"),
+]);
+
+const GraphAnnotation = Annotation.Root({
+  ...MessagesAnnotation.spec,
+  language: Annotation<string>(),
+});
+
+const callModel4 = async (state: typeof GraphAnnotation.State) => {
+  const chain = prompt2.pipe(llm);
+  const trimmedMessage = await trimmer.invoke(state.messages);
+  const response = await chain.invoke({
+    messages: trimmedMessage,
+    language: state.language,
+  });
+  return { messages: [response] };
 };
 
-// Define a new graph
-const workflow = new StateGraph(MessagesAnnotation)
-  .addNode("model", callModel)
+const workflow4 = new StateGraph(GraphAnnotation)
+  .addNode("model", callModel4)
   .addEdge(START, "model")
   .addEdge("model", END);
 
-// Add memory
-const memory = new MemorySaver();
-const app = workflow.compile({ checkpointer: memory });
+const app4 = workflow4.compile({ checkpointer: new MemorySaver() });
 
-const input = [{ role: "user", content: "Hi! I'm Bob" }];
-const output = await app.invoke({ messages: input }, config);
-console.log(output.messages[output.messages.length - 1]);
+const messages = [
+  new SystemMessage("you're a good assistant"),
+  new HumanMessage("hi! I'm bob"),
+  new AIMessage("hi!"),
+  new HumanMessage("I like vanilla ice cream"),
+  new AIMessage("nice"),
+  new HumanMessage("whats 2 + 2"),
+  new AIMessage("4"),
+  new HumanMessage("thanks"),
+  new AIMessage("no problem!"),
+  new HumanMessage("having fun?"),
+  new AIMessage("yes!"),
+];
 
-const input2 = [{ role: "user", content: "What's my name?" }];
-const output2 = await app.invoke({ messages: input2 }, config);
-console.log(output2.messages[output2.messages.length - 1]);
+const config5 = { configurable: { thread_id: genUUID() } };
+const input8 = {
+  messages: [...messages, new HumanMessage("What math problem did I ask?")],
+  language: "Korean",
+};
 
-// different thread_id
-const config2 = { configurable: { thread_id: genUUID() } };
-const input3 = [{ role: "user", content: "What's my name?" }];
-const output3 = await app.invoke({ messages: input3 }, config2);
-console.log(output3.messages[output3.messages.length - 1]);
+const output9 = await app4.invoke(input8, config5);
+console.log(last(output9.messages));
