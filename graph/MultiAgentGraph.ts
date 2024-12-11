@@ -13,7 +13,12 @@ workflow.addNode("ironman", ironmanAgent);
 workflow.addNode("captainAmerica", captainAmericaAgent);
 
 workflow.addEdge(START, "avengers");
-workflow.addEdge("avengers", END);
+
+workflow.addConditionalEdges(
+  "avengers",
+  whosNext.selector,
+  whosNext.conditions
+);
 
 workflow.addEdge("hulk", "avengers");
 workflow.addEdge("ironman", "avengers");

@@ -1,3 +1,4 @@
+import { END } from "@langchain/langgraph";
 import { AvengersAnnotationType } from "../state/AvengersState";
 
 export const avengersAgent = async (state: AvengersAnnotationType) => {
@@ -12,4 +13,20 @@ export const avengersAgent = async (state: AvengersAnnotationType) => {
   }
 
   return state;
+};
+
+const selectNextAgent = (state: AvengersAnnotationType) => {
+  if (state.is_defeated) {
+    return END;
+  }
+
+  const agents = ["hulk", "ironman", "captainAmerica"];
+  const nextAgent = agents[Math.floor(Math.random() * agents.length)];
+
+  return nextAgent;
+};
+
+export const whosNext = {
+  selector: selectNextAgent,
+  conditions: ["hulk", "ironman", "captainAmerica", END],
 };
