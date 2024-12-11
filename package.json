@@ -1,0 +1,20 @@
+{
+  "name": "chain",
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "start": "bun index.ts"
+  },
+  "dependencies": {
+    "@langchain/community": "^0.3.17",
+    "@langchain/core": "^0.3.23",
+    "@langchain/langgraph": "^0.2.30",
+    "@langchain/openai": "^0.3.14",
+    "@types/node": "^22.10.1",
+    "bun": "^1.1.38",
+    "langchain": "^0.3.6",
+    "remeda": "^2.17.4",
+    "tslab": "^1.0.22",
+    "uuid": "^11.0.3"
+  }
+}
