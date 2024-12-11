@@ -1,8 +1,10 @@
 import { TavilySearchResults } from "@langchain/community/tools/tavily_search";
 import { HumanMessage } from "@langchain/core/messages";
 import { MessagesAnnotation, StateGraph } from "@langchain/langgraph";
-import { ToolNode } from "@langchain/langgraph/prebuilt";
+import { createReactAgent, ToolNode } from "@langchain/langgraph/prebuilt";
 import { ChatOpenAI } from "@langchain/openai";
+import fs from "fs";
+import path from "path";
 import * as R from "remeda";
 
 // Define the tools for the agent to use
@@ -45,6 +47,7 @@ const workflow = new StateGraph(MessagesAnnotation)
 
 // Finally, we compile it into a LangChain Runnable.
 const app = workflow.compile();
+await saveAgentGraph("agent_graph.png", app);
 
 // Use the agent
 const finalState = await app.invoke({
@@ -58,3 +61,21 @@ const nextState = await app.invoke({
   messages: [...finalState.messages, new HumanMessage("what about ny")],
 });
 console.log(R.last(nextState.messages)!.content);
+
+//
+//
+//
+
+type AgentType = ReturnType<typeof createReactAgent>;
+
+async function saveAgentGraph(filename: string, agent: AgentType) {
+  const graph = agent.getGraph();
+  const image = await graph.drawMermaidPng();
+  const arrayBuffer = await image.arrayBuffer();
+  const data = new Uint8Array(arrayBuffer);
+
+  const savePath = path.join(__dirname, filename);
+  fs.writeFileSync(savePath, data);
+
+  return savePath;
+}
